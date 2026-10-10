@@ -1,0 +1,489 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Saffra — Restaurant Operating System</title>
+<meta name="description" content="Saffra is a complete restaurant POS that runs entirely on your own Wi-Fi — tables, kitchen display, payments, reports and staff, with no cloud account and no monthly fee." />
+<link rel="icon" type="image/png" href="assets/favicon.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:wght@600;700;800;900&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink: #13302A;
+    --ink2: #1F453C;
+    --ink-soft: #334155;
+    --muted: #6B7C76;
+    --line: #E2E8F0;
+    --paper: #FFFFFF;
+    --canvas: #F7F4EE;
+    --accent: #D63A5E;
+    --accent-soft: #FFF3E9;
+    --secondary: #0E9F8E;
+    --secondary-soft: #EEF3FF;
+    --success: #16A34A;
+    --r-xl: 32px;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  img { max-width: 100%; display: block; }
+  a { color: inherit; }
+  .wrap { max-width: 1160px; margin: 0 auto; padding-inline: 24px; }
+  h1, h2, h3 { font-family: "Fraunces", "Inter", sans-serif; margin: 0; text-wrap: balance; }
+  p { margin: 0; }
+  code, .mono { font-family: "JetBrains Mono", monospace; }
+
+  /* ---- decorative marks ---- */
+  .mark { position: absolute; opacity: 0.9; pointer-events: none; }
+  .mark svg { display: block; }
+
+  /* ---- Nav ---- */
+  .nav {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(19,48,42,0.72);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .nav-inner { display: flex; align-items: center; justify-content: space-between; padding-block: 14px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 18px; color: #fff; font-family: "Fraunces", sans-serif; }
+  .brand img { width: 30px; height: 30px; border-radius: 8px; }
+  .nav-links { display: flex; align-items: center; gap: 30px; font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.65); }
+  .nav-links a { transition: color 0.15s ease; }
+  .nav-links a:hover { color: #fff; }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    border-radius: 999px; font-weight: 700; font-size: 14px; padding: 11px 22px;
+    text-decoration: none; border: 1px solid transparent; cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease, border-color .15s ease;
+    white-space: nowrap;
+  }
+  .btn:active { transform: translateY(1px) scale(0.99); }
+  .btn-accent { background: var(--accent); color: #fff; box-shadow: 0 10px 24px -8px rgba(214,58,94,0.6); }
+  .btn-accent:hover { background: #EA6A0C; transform: translateY(-1px); }
+  .btn-white { background: #fff; color: var(--ink); }
+  .btn-white:hover { background: #F1F5F2; transform: translateY(-1px); }
+  .btn-ghost { background: rgba(255,255,255,0.08); color: #fff; border-color: rgba(255,255,255,0.18); }
+  .btn-ghost:hover { background: rgba(255,255,255,0.14); }
+  .btn-outline { background: transparent; color: var(--ink); border-color: var(--line); }
+  .btn-outline:hover { border-color: var(--ink); }
+  .btn-lg { padding: 15px 28px; font-size: 15.5px; }
+
+  /* ---- Hero ---- */
+  .hero {
+    position: relative; overflow: hidden;
+    background: var(--ink);
+    border-radius: 0 0 var(--r-xl) var(--r-xl);
+    padding-block: 60px 120px;
+  }
+  .hero-bg {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(circle at 22% 18%, rgba(214,58,94,0.30), transparent 52%),
+      radial-gradient(circle at 82% 68%, rgba(14,159,142,0.34), transparent 55%);
+  }
+  .hero-dots {
+    position: absolute; inset: 0;
+    background-image: radial-gradient(rgba(255,255,255,0.14) 1px, transparent 1px);
+    background-size: 20px 20px;
+    -webkit-mask-image: linear-gradient(180deg, black, transparent 85%);
+            mask-image: linear-gradient(180deg, black, transparent 85%);
+  }
+  .orb { position: absolute; border-radius: 999px; filter: blur(50px); opacity: 0.55; animation: float 7s ease-in-out infinite; }
+  @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-18px); } }
+  @media (prefers-reduced-motion: reduce) { .orb { animation: none; } }
+
+  .hero-inner { position: relative; text-align: center; padding-top: 40px; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 8px; padding: 7px 16px; border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.18); background: rgba(255,255,255,0.06);
+    color: rgba(255,255,255,0.85); font-size: 12.5px; font-weight: 700; letter-spacing: 0.02em;
+  }
+  .pill b { color: var(--accent); }
+  .hero h1 {
+    color: #fff; font-weight: 800; letter-spacing: -0.025em; margin-top: 26px;
+    font-size: clamp(38px, 6.6vw, 74px); line-height: 1.03;
+  }
+  .hero h1 .hl { color: var(--accent); position: relative; white-space: nowrap; }
+  .hero p.lead {
+    margin: 22px auto 0; font-size: 18px; color: rgba(255,255,255,0.62); max-width: 52ch;
+  }
+  .hero-ctas { display: flex; justify-content: center; flex-wrap: wrap; gap: 12px; margin-top: 34px; }
+  .hero-meta {
+    margin-top: 26px; display: flex; justify-content: center; flex-wrap: wrap; gap: 22px;
+    font-size: 13px; color: rgba(255,255,255,0.45); font-weight: 600;
+  }
+  .hero-meta span { display: inline-flex; align-items: center; gap: 7px; }
+  .dot-ok { width: 6px; height: 6px; border-radius: 999px; background: var(--accent); }
+
+  /* ---- Browser mockup ---- */
+  .browser {
+    position: relative; margin: 56px auto 0; max-width: 880px;
+    background: #fff; border-radius: 16px; overflow: hidden;
+    box-shadow: 0 40px 90px -24px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.06);
+  }
+  .browser-bar { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: #F1F5F2; border-bottom: 1px solid var(--line); }
+  .browser-bar i { width: 9px; height: 9px; border-radius: 999px; background: #CBD5E1; }
+  .browser-url {
+    flex: 1; text-align: center; font-family: "JetBrains Mono", monospace; font-size: 11.5px; color: var(--muted);
+    background: #fff; border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; max-width: 320px; margin: 0 auto;
+  }
+  .browser-body { padding: 20px; background: var(--canvas); display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; text-align: left; }
+  .stat-card { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
+  .stat-card .k { font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); font-weight: 700; }
+  .stat-card .v { font-family: "Fraunces", sans-serif; font-weight: 800; font-size: 20px; margin-top: 6px; }
+  .floor { grid-column: span 4; background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
+  .floor .k { font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); font-weight: 700; margin-bottom: 10px; }
+  .floor-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px; }
+  .tbl { aspect-ratio: 1; border-radius: 8px; border: 2px solid var(--line); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 11px; color: var(--ink-soft); }
+  .tbl.on { border-color: var(--success); color: var(--success); background: #F0FDF4; }
+  .tbl.busy { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+  .tbl.pending { border-color: var(--secondary); color: var(--secondary); background: var(--secondary-soft); }
+
+  /* ---- Stat bar ---- */
+  .statbar { background: var(--paper); padding-block: 54px; }
+  .statbar-inner { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; text-align: center; }
+  .statbar-item { padding: 18px 8px; border-left: 1px solid var(--line); }
+  .statbar-item:first-child { border-left: none; }
+  .statbar-item .n { font-family: "Fraunces", sans-serif; font-weight: 800; font-size: clamp(26px,3.4vw,38px); color: var(--ink); }
+  .statbar-item .n span { color: var(--accent); }
+  .statbar-item .l { margin-top: 6px; font-size: 12.5px; color: var(--muted); font-weight: 600; }
+
+  /* ---- Sections ---- */
+  section { position: relative; }
+  .section-pad { padding-block: 100px; }
+  .section-head { max-width: 640px; margin: 0 auto 52px; text-align: center; }
+  .section-head h2 { font-size: clamp(28px, 3.6vw, 42px); font-weight: 800; letter-spacing: -0.015em; }
+  .section-head p { margin-top: 14px; color: var(--muted); font-size: 16px; }
+  .section-head.light .pill { border-color: var(--line); background: var(--canvas); color: var(--ink-soft); }
+  .section-head.light .pill b { color: var(--accent); }
+
+  /* ---- Bento feature grid ---- */
+  .bento { display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px; }
+  .bcard {
+    background: #fff; border: 1px solid var(--line); border-radius: 20px; padding: 28px;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+    position: relative; overflow: hidden;
+  }
+  .bcard:hover { transform: translateY(-4px); box-shadow: 0 20px 40px -18px rgba(19,48,42,0.2); border-color: #CBD5E1; }
+  .bcard .tag {
+    display: inline-flex; font-size: 11px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase;
+    color: var(--accent); background: var(--accent-soft); padding: 5px 10px; border-radius: 999px; margin-bottom: 14px;
+  }
+  .bcard h3 { font-size: 19px; font-weight: 800; letter-spacing: -0.01em; }
+  .bcard p { margin-top: 10px; font-size: 14.5px; color: var(--muted); line-height: 1.65; }
+  .b-xl { grid-column: span 3; grid-row: span 2; padding: 36px; display: flex; flex-direction: column; justify-content: flex-end; min-height: 300px; }
+  .b-xl h3 { font-size: 26px; }
+  .b-xl.dark { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .b-xl.dark .tag { background: rgba(214,58,94,0.18); }
+  .b-xl.dark p { color: rgba(255,255,255,0.6); }
+  .b-md { grid-column: span 3; }
+  .b-sm { grid-column: span 2; }
+  .ghost-num {
+    position: absolute; right: 14px; top: 4px; font-family: "Fraunces", sans-serif; font-weight: 800;
+    font-size: 90px; color: rgba(19,48,42,0.04); line-height: 1; pointer-events: none;
+  }
+  .b-xl.dark .ghost-num { color: rgba(255,255,255,0.05); }
+
+  /* ---- Local-first (dark, tucked corners) ---- */
+  .local-first {
+    background: var(--ink); border-radius: var(--r-xl); overflow: hidden; position: relative;
+    padding: 64px;
+  }
+  .lf-bg {
+    position: absolute; inset: 0;
+    background: radial-gradient(50% 60% at 10% 100%, rgba(214,58,94,0.22), transparent 60%),
+                radial-gradient(45% 55% at 100% 0%, rgba(14,159,142,0.28), transparent 60%);
+  }
+  .lf-inner { position: relative; display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: center; }
+  .local-first h2 { font-size: clamp(26px, 3.4vw, 38px); font-weight: 800; color: #fff; }
+  .local-first p.lead { margin-top: 16px; color: rgba(255,255,255,0.6); font-size: 16px; max-width: 46ch; }
+  .band-points { margin-top: 26px; display: grid; gap: 14px; }
+  .band-point { display: flex; gap: 12px; align-items: flex-start; font-size: 14.5px; color: rgba(255,255,255,0.85); }
+  .band-point .chk {
+    flex-shrink: 0; width: 22px; height: 22px; border-radius: 7px; background: rgba(214,58,94,0.16); color: var(--accent);
+    display: flex; align-items: center; justify-content: center; margin-top: 1px; font-weight: 800; font-size: 12px;
+  }
+  .wifi-card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); border-radius: 18px; padding: 24px; }
+  .wifi-card .lab { font-size: 11.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: rgba(255,255,255,0.5); }
+  .wifi-card .addr {
+    font-family: "JetBrains Mono", monospace; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px; padding: 13px 15px; font-size: 14px; margin-top: 12px; color: #8FDCCF; display: flex; align-items: center; justify-content: space-between;
+  }
+  .wifi-card .addr .go { color: var(--accent); font-weight: 700; }
+  .wifi-devices { display: flex; gap: 10px; margin-top: 20px; }
+  .wifi-devices span {
+    flex: 1; text-align: center; font-size: 20px;
+    border: 1px dashed rgba(255,255,255,0.2); border-radius: 12px; padding: 14px 4px;
+    display: flex; flex-direction: column; gap: 6px; align-items: center;
+  }
+  .wifi-devices span em { font-style: normal; font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.55); }
+
+  /* ---- Steps ---- */
+  .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; counter-reset: step; position: relative; }
+  .steps::before { content: ""; position: absolute; top: 24px; left: 60px; right: 60px; height: 2px; background: var(--line); z-index: 0; }
+  .step { position: relative; padding: 0 18px; z-index: 1; }
+  .step .num {
+    width: 48px; height: 48px; border-radius: 999px; background: #fff; border: 2px solid var(--ink);
+    color: var(--ink); display: flex; align-items: center; justify-content: center;
+    font-family: "Fraunces", sans-serif; font-weight: 800; font-size: 17px; margin-bottom: 18px;
+  }
+  .step:nth-child(1) .num { background: var(--ink); color: #fff; }
+  .step h3 { font-size: 16px; font-weight: 800; }
+  .step p { margin-top: 8px; font-size: 13.5px; color: var(--muted); line-height: 1.65; }
+
+  /* ---- Download ---- */
+  .download-panel {
+    background: linear-gradient(160deg, var(--ink), #182338);
+    border-radius: var(--r-xl); padding: 70px 40px; text-align: center; position: relative; overflow: hidden;
+  }
+  .download-panel::before {
+    content: ""; position: absolute; inset: 0;
+    background: radial-gradient(60% 70% at 50% 0%, rgba(214,58,94,0.22), transparent 60%);
+  }
+  .download-panel .inner { position: relative; }
+  .download-panel h2 { font-size: clamp(28px, 3.8vw, 42px); font-weight: 800; color: #fff; }
+  .download-panel p.lead { margin: 16px auto 0; color: rgba(255,255,255,0.6); max-width: 48ch; font-size: 16px; }
+  .download-ctas { display: flex; justify-content: center; gap: 12px; margin-top: 32px; flex-wrap: wrap; }
+  .download-note { margin-top: 20px; font-size: 12.5px; color: rgba(255,255,255,0.4); }
+  .download-note a { color: rgba(255,255,255,0.7); font-weight: 600; }
+
+  /* ---- Footer ---- */
+  footer { padding-block: 40px; }
+  .footer-inner { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+  .footer-brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-family: "Fraunces", sans-serif; }
+  .footer-brand img { width: 24px; height: 24px; border-radius: 6px; }
+  .footer-links { display: flex; gap: 24px; font-size: 13.5px; color: var(--muted); font-weight: 600; }
+  .footer-links a:hover { color: var(--ink); }
+
+  @media (max-width: 900px) {
+    .bento { grid-template-columns: repeat(2, 1fr); }
+    .b-xl, .b-md { grid-column: span 2; }
+    .b-sm { grid-column: span 1; }
+    .b-xl { min-height: auto; padding: 28px; }
+    .lf-inner { grid-template-columns: 1fr; }
+    .steps { grid-template-columns: repeat(2, 1fr); gap: 24px; }
+    .steps::before { display: none; }
+    .nav-links { display: none; }
+    .statbar-inner { grid-template-columns: repeat(2, 1fr); }
+    .statbar-item:nth-child(3) { border-left: none; }
+  }
+  @media (max-width: 560px) {
+    .browser-body { grid-template-columns: repeat(2, 1fr); }
+    .floor { grid-column: span 2; }
+    .floor-grid { grid-template-columns: repeat(4, 1fr); }
+    .local-first, .download-panel { padding: 36px 22px; }
+    .section-pad { padding-block: 64px; }
+  }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="wrap nav-inner">
+    <div class="brand"><img src="assets/logo.png" alt="" width="30" height="30" />Saffra</div>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#local-first">How it runs</a>
+      <a href="#get-started">Get started</a>
+      <a href="https://github.com/101ANJ101/saffra" target="_blank" rel="noopener">GitHub</a>
+    </div>
+    <a class="btn btn-ghost" href="#download">Download</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-dots"></div>
+  <div class="orb" style="width:320px;height:320px;left:-60px;top:120px;background:var(--accent);"></div>
+  <div class="orb" style="width:360px;height:360px;right:-100px;bottom:-40px;background:var(--secondary);animation-delay:2s;"></div>
+
+  <div class="wrap hero-inner">
+    <span class="pill">● Restaurant Operating System — <b>runs on your own Wi-Fi</b></span>
+    <h1>Every table,<br /><span class="hl">in tune.</span></h1>
+    <p class="lead">
+      One install, one computer, your whole floor connected. Saffra runs its own local server —
+      no cloud account, no monthly bill, no internet required to fire a ticket.
+    </p>
+    <div class="hero-ctas">
+      <a class="btn btn-accent btn-lg" href="#download">Download for Windows →</a>
+      <a class="btn btn-ghost btn-lg" href="#features">See what's inside</a>
+    </div>
+    <div class="hero-meta">
+      <span><i class="dot-ok"></i>Free &amp; open source</span>
+      <span><i class="dot-ok"></i>No credit card</span>
+      <span><i class="dot-ok"></i>Works fully offline</span>
+    </div>
+
+    <div class="browser" aria-hidden="true">
+      <div class="browser-bar">
+        <i></i><i></i><i></i>
+        <div class="browser-url">🔒 192.168.1.42:4000</div>
+      </div>
+      <div class="browser-body">
+        <div class="stat-card"><div class="k">Revenue</div><div class="v" style="color:var(--accent)">₹11,352</div></div>
+        <div class="stat-card"><div class="k">Orders</div><div class="v">11</div></div>
+        <div class="stat-card"><div class="k">Kitchen</div><div class="v" style="color:var(--success)">5</div></div>
+        <div class="stat-card"><div class="k">Pending</div><div class="v" style="color:var(--secondary)">2</div></div>
+        <div class="floor">
+          <div class="k">Floor</div>
+          <div class="floor-grid">
+            <div class="tbl on">1</div><div class="tbl busy">2</div><div class="tbl on">3</div><div class="tbl pending">4</div>
+            <div class="tbl on">5</div><div class="tbl on">6</div><div class="tbl busy">7</div><div class="tbl on">8</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="statbar">
+  <div class="wrap statbar-inner">
+    <div class="statbar-item"><div class="n"><span>9</span></div><div class="l">Core modules, no add-on pricing</div></div>
+    <div class="statbar-item"><div class="n">0</div><div class="l">Cloud accounts required</div></div>
+    <div class="statbar-item"><div class="n">1</div><div class="l">Install, runs your whole floor</div></div>
+    <div class="statbar-item"><div class="n">&lt;5<span>min</span></div><div class="l">From download to first order</div></div>
+  </div>
+</div>
+
+<section id="features" class="section-pad">
+  <div class="wrap">
+    <div class="section-head light">
+      <span class="pill">Everything included</span>
+      <h2 style="margin-top:16px;">One system, the whole floor</h2>
+      <p>Every module a real restaurant needs, built in from day one — not add-ons behind a paywall.</p>
+    </div>
+
+    <div class="bento">
+      <div class="bcard b-xl dark">
+        <span class="ghost-num">01</span>
+        <span class="tag">Floor</span>
+        <h3>Tables &amp; Kitchen, in sync</h3>
+        <p>See every table's live status — occupied, food preparing, ready to serve, payment pending — and bill or clear a table right from its tile. Kitchen tickets move New → Accepted → Preparing → Ready automatically, with a chime for new orders. A repeat order never resends food that's already been served.</p>
+      </div>
+      <div class="bcard b-md">
+        <span class="ghost-num">02</span>
+        <span class="tag">Orders</span>
+        <h3>Order Workspace</h3>
+        <p>A fast menu-browsing cart for waiters. One table visit is always one running bill, even when the customer orders more after their first course.</p>
+      </div>
+      <div class="bcard b-sm">
+        <span class="ghost-num">03</span>
+        <span class="tag">Payments</span>
+        <h3>Cash, card, UPI, or a link</h3>
+        <p>Demo Mode out of the box — plug in Razorpay any time for live payments.</p>
+      </div>
+      <div class="bcard b-sm">
+        <span class="ghost-num">04</span>
+        <span class="tag">Reports</span>
+        <h3>Know what's working</h3>
+        <p>Revenue trends, top-selling items, waiter performance, table utilization.</p>
+      </div>
+      <div class="bcard b-md">
+        <span class="ghost-num">05</span>
+        <span class="tag">Staff</span>
+        <h3>Roles, not one shared login</h3>
+        <p>Waiters, cashiers, managers, and admins each get their own login and see exactly what their role needs.</p>
+      </div>
+      <div class="bcard b-md">
+        <span class="ghost-num">06</span>
+        <span class="tag">Onboarding</span>
+        <h3>Guided setup wizard</h3>
+        <p>Restaurant details, tax rates, your admin login, table count, an optional starter menu — live in under two minutes.</p>
+      </div>
+      <div class="bcard b-md">
+        <span class="ghost-num">07</span>
+        <span class="tag">Training</span>
+        <h3>Live, spotlighted product tour</h3>
+        <p>New staff get a guided walkthrough of every screen the first time they sign in — replayable any time from Settings.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="local-first" class="wrap section-pad" style="padding-top:0;">
+  <div class="local-first">
+    <div class="lf-bg"></div>
+    <div class="lf-inner">
+      <div>
+        <span class="pill">No cloud, on purpose</span>
+        <h2 style="margin-top:16px;">Runs entirely on your own Wi-Fi</h2>
+        <p class="lead">
+          Install Saffra on one computer in the restaurant — a back-office PC, a POS terminal, anything.
+          It runs its own local server and database right there. Every other device just opens a browser.
+        </p>
+        <div class="band-points">
+          <div class="band-point"><span class="chk">✓</span>Every waiter's phone, tablet, or the billing counter connects over the same Wi-Fi — nothing to install on their end.</div>
+          <div class="band-point"><span class="chk">✓</span>No internet outage ever stops you from taking an order or printing a receipt.</div>
+          <div class="band-point"><span class="chk">✓</span>Your data — orders, payments, customers — never leaves the building unless you choose to back it up.</div>
+        </div>
+      </div>
+      <div class="wifi-card">
+        <div class="lab">Connect devices on Wi-Fi</div>
+        <div class="addr">192.168.1.42:4000 <span class="go">↗</span></div>
+        <p style="margin-top:14px; font-size:13px; color:rgba(255,255,255,0.55); line-height:1.6;">Open this address on any device on the same network — they get the whole app instantly, no install.</p>
+        <div class="wifi-devices">
+          <span>📱<em>Phone</em></span>
+          <span>📟<em>Tablet</em></span>
+          <span>🖥️<em>Counter</em></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="get-started" class="section-pad">
+  <div class="wrap">
+    <div class="section-head light">
+      <span class="pill">Get started</span>
+      <h2 style="margin-top:16px;">Live in under five minutes</h2>
+      <p>No IT team, no configuration files, no support call needed.</p>
+    </div>
+    <div class="steps">
+      <div class="step"><div class="num">1</div><h3>Download &amp; install</h3><p>Run the Windows installer on any computer in the restaurant. Under a minute.</p></div>
+      <div class="step"><div class="num">2</div><h3>Quick setup wizard</h3><p>Restaurant name, tax rates, your admin login, and how many tables you have.</p></div>
+      <div class="step"><div class="num">3</div><h3>Connect your team</h3><p>Saffra shows a Wi-Fi address — open it on every waiter's phone or the counter.</p></div>
+      <div class="step"><div class="num">4</div><h3>Start serving</h3><p>Seat a table, send to kitchen, take payment. A guided tour covers the rest.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="download" class="wrap section-pad" style="padding-top:0;">
+  <div class="download-panel">
+    <div class="inner">
+      <span class="pill" style="border-color:rgba(255,255,255,0.18); background:rgba(255,255,255,0.06); color:rgba(255,255,255,0.85);">Download</span>
+      <h2 style="margin-top:18px;">Get Saffra for Windows</h2>
+      <p class="lead">Free. No account, no credit card, no data leaving your restaurant.</p>
+      <div class="download-ctas">
+        <a class="btn btn-accent btn-lg" href="https://github.com/101ANJ101/saffra/releases/latest/download/Saffra-Setup.exe">⬇ Download Saffra-Setup.exe</a>
+        <a class="btn btn-ghost btn-lg" href="https://github.com/101ANJ101/saffra/releases" target="_blank" rel="noopener">All releases</a>
+      </div>
+      <p class="download-note">Windows 10/11 (64-bit). Built automatically by GitHub Actions on every release — see the source on <a href="https://github.com/101ANJ101/saffra" target="_blank" rel="noopener">GitHub</a>.</p>
+    </div>
+  </div>
+</section>
+
+<footer class="wrap">
+  <div class="footer-inner">
+    <div class="footer-brand"><img src="assets/logo.png" alt="" width="24" height="24" />Saffra</div>
+    <div class="footer-links">
+      <a href="https://github.com/101ANJ101/saffra" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://github.com/101ANJ101/saffra/releases" target="_blank" rel="noopener">Releases</a>
+      <a href="https://github.com/101ANJ101/saffra/issues" target="_blank" rel="noopener">Report an issue</a>
+    </div>
+    <div style="font-size:13px; color:var(--muted); font-weight:600;">© 2026 Saffra. Tables, kitchen and payments — in one flow.</div>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,62 @@
+# ================================================================
+# Saffra — .gitignore for Vercel Hosting
+# Configured so only files required for Vercel hosting are pushed
+# ================================================================
+
+# --- Vercel & Node Dependencies ---
+.vercel/
+node_modules/
+.pnp
+.pnp.js
+package.json
+package-lock.json
+tsconfig.base.json
+
+# --- Environment variables & secrets ---
+.env
+.env.*
+!.env.example
+secrets.json
+
+# --- OS & Editor artifacts ---
+.DS_Store
+Thumbs.db
+*.log
+.vscode/
+.idea/
+
+# --- Build outputs & caches ---
+dist/
+build/
+coverage/
+.cache/
+.turbo/
+.vite/
+*.tsbuildinfo
+
+# --- SQLite & Local Databases ---
+*.db
+*.db-journal
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# --- Excluded Non-Vercel Applications ---
+# Only apps/website is deployed on Vercel
+apps/api/
+apps/desktop/
+apps/web/
+mobile/
+
+# --- Excluded Shared Packages & Workspaces ---
+packages/
+
+# --- Excluded Scripts & Heavy Media (Remotion, recordings) ---
+scripts/
+
+# --- Excluded Internal Documentation & CI ---
+.claude/
+.github/
+docs/
+assets/
+CLAUDE.md
