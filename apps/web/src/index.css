@@ -1,0 +1,83 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: "Inter", "DM Sans", system-ui, sans-serif;
+  }
+  body {
+    @apply bg-bg text-primary;
+  }
+  ::selection {
+    @apply bg-secondary/20;
+  }
+}
+
+@layer utilities {
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    @apply bg-borderc rounded-full;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+@layer utilities {
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@layer components {
+  .input-base {
+    @apply h-11 w-full rounded-xl border border-borderc bg-white px-3 text-sm text-primary outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/30;
+  }
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #receipt-print-area,
+  #receipt-print-area * {
+    visibility: visible;
+  }
+  #receipt-print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 80mm;
+  }
+}
+
+/* Printable table QR cards (Tables → Print QR codes). Same idea as the
+   receipt: only the cards are visible, and the app's fixed-height scroll
+   containers are released so every page of cards prints. */
+@media print {
+  #qr-print-area,
+  #qr-print-area * {
+    visibility: visible;
+  }
+  #qr-print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+  body:has(#qr-print-area) .h-screen,
+  body:has(#qr-print-area) main {
+    height: auto !important;
+    overflow: visible !important;
+  }
+  .qr-card {
+    break-inside: avoid;
+  }
+}

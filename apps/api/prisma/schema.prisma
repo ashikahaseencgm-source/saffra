@@ -1,0 +1,532 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ────────────────────────────────────────────────────────────
+// "Enums" — SQLite has no native enum type, so these fields are plain
+// String columns. The single source of truth for the allowed values is the
+// string-literal union types in packages/types/src/index.ts; Prisma just
+// stores whatever string the application writes.
+// ────────────────────────────────────────────────────────────
+
+// Role: WAITER | CASHIER | MANAGER | ADMIN
+// TableStatus: AVAILABLE | OCCUPIED | ORDERING | FOOD_PREPARING | READY_TO_SERVE | PAYMENT_PENDING | COMPLETED | RESERVED
+// OrderStatus: DRAFT | CONFIRMED | SENT_TO_KITCHEN | PREPARING | READY | SERVED | PAYMENT_PENDING | PAID | COMPLETED | CANCELLED
+// OrderType: DINE_IN | TAKEAWAY | DELIVERY
+// PaymentState: PENDING | INITIATED | AUTHORIZED | CAPTURED | FAILED | CANCELLED | REFUNDED
+// PaymentMethod: UPI | CREDIT_CARD | DEBIT_CARD | NET_BANKING | WALLET | CASH | QR
+// PaymentProviderKind: DEMO | RAZORPAY_TEST | RAZORPAY_LIVE
+// KitchenTicketStatus: NEW | ACCEPTED | PREPARING | READY | COMPLETED
+// FoodType: VEG | NON_VEG | EGG
+// DiscountType: PERCENTAGE | FLAT
+// OrderItemKitchenStatus: PENDING | FIRED | SERVED
+
+// ────────────────────────────────────────────────────────────
+// Core entities
+// ────────────────────────────────────────────────────────────
+
+model Restaurant {
+  id                    String   @id @default(uuid())
+  name                  String   @default("Saffra Bistro")
+  logoUrl               String?
+  address               String?
+  city                  String?
+  gstin                 String?
+  phone                 String?
+  email                 String?
+  currency              String   @default("INR")
+  timezone              String   @default("Asia/Kolkata")
+  invoicePrefix         String   @default("SAF")
+  receiptFooter         String   @default("Thank you for dining with us. Visit again!")
+  // The easy-to-type Wi-Fi address other devices use: http://<localHostname>.local
+  // (announced over mDNS). Null = derived from the restaurant name.
+  localHostname         String?
+  // Set once the first-run onboarding wizard finishes; the app checks this
+  // (not just "does a restaurant row exist") to decide whether to show
+  // onboarding or go straight to login.
+  onboardingCompletedAt DateTime?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  users        User[]
+  tables       RestaurantTable[]
+  categories   MenuCategory[]
+  menuItems    MenuItem[]
+  orders       Order[]
+  customers    Customer[]
+  taxConfig    TaxConfiguration?
+  paymentGateway PaymentGatewayConfig?
+  guestRequests  GuestRequest[]
+  loyaltyProgram LoyaltyProgram?
+  loyaltyTiers   LoyaltyTier[]
+}
+
+model User {
+  id           String    @id @default(uuid())
+  employeeId   String    @unique
+  name         String
+  role         String
+  phone        String?
+  email        String?
+  passwordHash String
+  joiningDate  DateTime  @default(now())
+  active       Boolean   @default(true)
+  // First-run product tour: shown once per staff account, replayable from
+  // Settings. Tracked server-side (not localStorage) so it follows the
+  // person across whichever device they log in on.
+  tourCompletedAt DateTime?
+  deletedAt    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
+
+  ordersWaited      Order[]        @relation("WaiterOrders")
+  paymentsCashiered Payment[]      @relation("CashierPayments")
+  auditLogs         AuditLog[]
+  sessions          Session[]
+  refreshTokens     RefreshToken[]
+  discountsApproved Discount[]     @relation("DiscountApprover")
+
+  @@index([restaurantId])
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  userAgent String?
+  ipAddress String?
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+  revokedAt DateTime?
+
+  @@index([userId])
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+  tokenHash String    @unique
+  createdAt DateTime  @default(now())
+  expiresAt DateTime
+  revokedAt DateTime?
+  replacedByTokenHash String?
+
+  @@index([userId])
+}
+
+model Customer {
+  id           String   @id @default(uuid())
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
+  phone        String
+  name         String
+  visitCount   Int      @default(0)
+  // Lifetime amount paid (after discounts) — drives loyalty tiers.
+  totalSpent   Decimal  @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  orders        Order[]
+  loyaltyLedger LoyaltyLedgerEntry[]
+  guestRequests GuestRequest[]
+
+  @@unique([restaurantId, phone])
+  @@index([restaurantId])
+}
+
+model RestaurantTable {
+  id               String      @id @default(uuid())
+  number           Int
+  capacity         Int
+  status           String      @default("AVAILABLE")
+  // Random token printed in the table's QR code (http://<server>/t/<qrToken>).
+  // Regenerating it invalidates old printed codes.
+  qrToken          String?     @unique
+  deletedAt        DateTime?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  restaurantId     String
+  restaurant       Restaurant  @relation(fields: [restaurantId], references: [id])
+
+  orders           Order[]
+  guestRequests    GuestRequest[]
+
+  @@unique([restaurantId, number])
+  @@index([restaurantId])
+}
+
+model MenuCategory {
+  id           String     @id @default(uuid())
+  name         String
+  sortOrder    Int        @default(0)
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
+  items        MenuItem[]
+
+  @@unique([restaurantId, name])
+}
+
+model MenuItem {
+  id           String       @id @default(uuid())
+  name         String
+  description  String
+  price        Decimal
+  foodType     String
+  imageUrl     String?
+  available    Boolean      @default(true)
+  featured     Boolean      @default(false)
+  popular      Boolean      @default(false)
+  deletedAt    DateTime?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  categoryId   String
+  category     MenuCategory @relation(fields: [categoryId], references: [id])
+
+  restaurantId String
+  restaurant   Restaurant   @relation(fields: [restaurantId], references: [id])
+
+  orderItems   OrderItem[]
+
+  @@index([restaurantId])
+  @@index([categoryId])
+}
+
+model TaxConfiguration {
+  id                   String     @id @default(uuid())
+  restaurantId         String     @unique
+  restaurant           Restaurant @relation(fields: [restaurantId], references: [id])
+  cgstPercent          Decimal    @default(2.5)
+  sgstPercent          Decimal    @default(2.5)
+  serviceChargePercent Decimal    @default(5)
+  updatedAt            DateTime   @updatedAt
+}
+
+// The restaurant's OWN online-payment account (money goes to them, not to
+// Saffra). Entered in Settings / onboarding. The key secret is stored
+// encrypted (AES-256-GCM, see lib/secretBox.ts) and never sent to a browser.
+// No row (or env vars only) = Demo Payment Mode.
+model PaymentGatewayConfig {
+  id              String     @id @default(uuid())
+  restaurantId    String     @unique
+  restaurant      Restaurant @relation(fields: [restaurantId], references: [id])
+  provider        String     @default("RAZORPAY")
+  // Public key id (rzp_test_... / rzp_live_...) - safe to show and to send to checkout.js.
+  keyId           String
+  keySecretEnc    String
+  // TEST | LIVE, derived from the key id prefix.
+  mode            String
+  // Last time Razorpay accepted these keys; null = saved while offline, not yet checked.
+  verifiedAt      DateTime?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+}
+
+model Order {
+  id             String      @id @default(uuid())
+  orderNumber    String      @unique
+  orderType      String      @default("DINE_IN")
+  status         String      @default("DRAFT")
+  note           String?
+
+  subtotal       Decimal     @default(0)
+  cgst           Decimal     @default(0)
+  sgst           Decimal     @default(0)
+  serviceCharge  Decimal     @default(0)
+  discountAmount Decimal     @default(0)
+  discountReason String?
+  // Loyalty points the guest chose to spend on this bill, and their rupee value
+  // (included in discountAmount).
+  loyaltyPointsRedeemed Int     @default(0)
+  loyaltyDiscount       Decimal @default(0)
+  roundOff       Decimal     @default(0)
+  grandTotal     Decimal     @default(0)
+
+  customerName   String?
+  customerId     String?
+  customer       Customer?   @relation(fields: [customerId], references: [id])
+  publicPayToken String?     @unique
+
+  restaurantId   String
+  restaurant     Restaurant  @relation(fields: [restaurantId], references: [id])
+
+  tableId        String?
+  table          RestaurantTable? @relation(fields: [tableId], references: [id])
+
+  waiterId       String
+  waiter         User        @relation("WaiterOrders", fields: [waiterId], references: [id])
+
+  items          OrderItem[]
+  discounts      Discount[]
+  // One ticket per "Send to Kitchen" round. A sent round is never edited
+  // or reopened — more food later is a NEW ticket on the SAME order/bill.
+  kitchenTickets KitchenTicket[]
+  payments       Payment[]
+  receipt        Receipt?
+  auditLogs      AuditLog[]
+  guestRequests  GuestRequest[]
+  loyaltyLedger  LoyaltyLedgerEntry[]
+
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  confirmedAt    DateTime?
+  completedAt    DateTime?
+  cancelledAt    DateTime?
+
+  @@index([restaurantId])
+  @@index([waiterId])
+  @@index([tableId])
+  @@index([customerId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id         String   @id @default(uuid())
+  orderId    String
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  menuItemId String
+  menuItem   MenuItem @relation(fields: [menuItemId], references: [id])
+
+  nameSnapshot  String
+  priceSnapshot Decimal
+  quantity      Int     @default(1)
+  notes         String?
+
+  // See the OrderItemKitchenStatus note above — lets a repeat order land as
+  // its own new line instead of silently re-firing an already-served one.
+  kitchenStatus String @default("PENDING")
+
+  // The kitchen round (ticket) this line was sent on. Null while PENDING.
+  kitchenTicketId String?
+  kitchenTicket   KitchenTicket? @relation(fields: [kitchenTicketId], references: [id])
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([orderId])
+  @@index([kitchenTicketId])
+}
+
+model Discount {
+  id           String       @id @default(uuid())
+  orderId      String
+  order        Order        @relation(fields: [orderId], references: [id])
+  type         String
+  value        Decimal
+  reason       String
+  approvedById String?
+  approvedBy   User?        @relation("DiscountApprover", fields: [approvedById], references: [id])
+  createdAt    DateTime     @default(now())
+
+  @@index([orderId])
+}
+
+model KitchenTicket {
+  id         String   @id @default(uuid())
+  orderId    String
+  order      Order    @relation(fields: [orderId], references: [id])
+  // 1 for the first send, 2 for the first "more items" round, and so on.
+  round      Int      @default(1)
+  status     String   @default("NEW")
+  ticketNumber String
+  items      OrderItem[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  acceptedAt DateTime?
+  readyAt    DateTime?
+  completedAt DateTime?
+
+  @@index([status])
+  @@index([orderId])
+}
+
+model Payment {
+  id                 String              @id @default(uuid())
+  orderId            String
+  order              Order               @relation(fields: [orderId], references: [id])
+
+  provider           String
+  providerOrderId    String
+  providerPaymentId  String?
+  method             String?
+  amount             Decimal
+  currency           String              @default("INR")
+  state              String              @default("PENDING")
+
+  amountReceived     Decimal?
+  changeReturned     Decimal?
+
+  cashierId          String?
+  cashier            User?               @relation("CashierPayments", fields: [cashierId], references: [id])
+
+  signature          String?
+  failureReason      String?
+  refundedAmount     Decimal?
+
+  attempts           PaymentAttempt[]
+  receipt            Receipt?
+
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  capturedAt         DateTime?
+
+  @@index([orderId])
+  @@index([state])
+  @@unique([providerOrderId])
+}
+
+model PaymentAttempt {
+  id         String       @id @default(uuid())
+  paymentId  String
+  payment    Payment      @relation(fields: [paymentId], references: [id])
+  state      String
+  method     String?
+  message    String?
+  createdAt  DateTime     @default(now())
+
+  @@index([paymentId])
+}
+
+model Receipt {
+  id             String   @id @default(uuid())
+  orderId        String   @unique
+  order          Order    @relation(fields: [orderId], references: [id])
+  paymentId      String?  @unique
+  payment        Payment? @relation(fields: [paymentId], references: [id])
+  receiptNumber  String   @unique
+  html           String
+  createdAt      DateTime @default(now())
+  printCount     Int      @default(0)
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id])
+  orderId    String?
+  order      Order?   @relation(fields: [orderId], references: [id])
+  action     String
+  entity     String
+  entityId   String?
+  // JSON-encoded string — SQLite has no native Json column type in Prisma.
+  // See auditService.ts for the (de)serialization boundary.
+  metadata   String?
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([orderId])
+  @@index([action])
+}
+
+// ────────────────────────────────────────────────────────────
+// Guest self-ordering (table QR codes)
+// ────────────────────────────────────────────────────────────
+
+// Something a guest asked for from their table's QR page. Nothing reaches
+// the kitchen until a staff member accepts it.
+// kind: ORDER | BILL ; status: PENDING | ACCEPTED | DECLINED
+model GuestRequest {
+  id           String    @id @default(uuid())
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
+  tableId      String
+  table        RestaurantTable @relation(fields: [tableId], references: [id])
+  kind         String    @default("ORDER")
+  status       String    @default("PENDING")
+  // JSON: [{ menuItemId, name, price, quantity, notes }] — snapshot at request time.
+  items        String    @default("[]")
+  note         String?
+  guestName    String?
+  guestPhone   String?
+  customerId   String?
+  customer     Customer? @relation(fields: [customerId], references: [id])
+  // The table bill it was added to once accepted.
+  orderId      String?
+  order        Order?    @relation(fields: [orderId], references: [id])
+  handledById  String?
+  declineReason String?
+  createdAt    DateTime  @default(now())
+  handledAt    DateTime?
+
+  @@index([restaurantId, status])
+  @@index([tableId])
+}
+
+// ────────────────────────────────────────────────────────────
+// Loyalty
+// ────────────────────────────────────────────────────────────
+
+model LoyaltyProgram {
+  id                    String     @id @default(uuid())
+  restaurantId          String     @unique
+  restaurant            Restaurant @relation(fields: [restaurantId], references: [id])
+  enabled               Boolean    @default(false)
+  // Reward value earned, as % of the eligible bill (before tax). Tiers can override.
+  earnPercent           Decimal    @default(5)
+  // Rupee value of one point.
+  pointValue            Decimal    @default(1)
+  minBillToEarn         Decimal    @default(0)
+  // Points needed before any can be used.
+  redeemMinPoints       Int        @default(100)
+  // At most this % of a bill can be paid with points.
+  maxRedeemPercent      Decimal    @default(50)
+  // Points expire this many days after they're earned. 0 = never.
+  expiryDays            Int        @default(365)
+  // JSON array of MenuCategory ids that don't earn points.
+  excludedCategoryIds   String     @default("[]")
+  // Bonus points on every Nth paid visit (0 = off).
+  visitBonusEvery       Int        @default(0)
+  visitBonusPoints      Int        @default(0)
+  // One-time points on a guest's first paid visit.
+  welcomeBonusPoints    Int        @default(0)
+  updatedAt             DateTime   @updatedAt
+}
+
+// Tiers are reached by lifetime spend AND/OR visits; the highest one a guest
+// qualifies for sets their earn rate.
+model LoyaltyTier {
+  id           String     @id @default(uuid())
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
+  name         String
+  minSpend     Decimal    @default(0)
+  minVisits    Int        @default(0)
+  earnPercent  Decimal
+  color        String     @default("#D63A5E")
+  sortOrder    Int        @default(0)
+
+  @@index([restaurantId])
+}
+
+// Every change to a guest's points. Balance is derived from this (FIFO with
+// expiry, see loyaltyEngine.ts) — never stored as an editable number.
+// type: EARN | BONUS | REDEEM | ADJUST
+model LoyaltyLedgerEntry {
+  id          String    @id @default(uuid())
+  customerId  String
+  customer    Customer  @relation(fields: [customerId], references: [id])
+  orderId     String?
+  order       Order?    @relation(fields: [orderId], references: [id])
+  type        String
+  // Positive for EARN/BONUS, negative for REDEEM.
+  points      Int
+  note        String?
+  expiresAt   DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@unique([orderId, type])
+  @@index([customerId])
+}
+

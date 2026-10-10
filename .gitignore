@@ -1,31 +1,33 @@
 # ================================================================
-# Saffra — .gitignore for Vercel Hosting
-# Configured so only files required for Vercel hosting are pushed
+# Saffra — .gitignore for Vercel Deployment
+# Ensures only source code & assets required for Vercel are pushed
 # ================================================================
 
-# --- Vercel & Node Dependencies ---
-.vercel/
+# --- Node & Dependencies ---
 node_modules/
 .pnp
 .pnp.js
-package.json
-package-lock.json
-tsconfig.base.json
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# --- Environment variables & secrets ---
+# --- Vercel local cache ---
+.vercel/
+
+# --- Environment & Secrets ---
 .env
 .env.*
 !.env.example
 secrets.json
 
-# --- OS & Editor artifacts ---
+# --- OS & IDE artifacts ---
 .DS_Store
 Thumbs.db
 *.log
 .vscode/
 .idea/
 
-# --- Build outputs & caches ---
+# --- Build outputs & compiler caches ---
 dist/
 build/
 coverage/
@@ -33,28 +35,29 @@ coverage/
 .turbo/
 .vite/
 *.tsbuildinfo
+apps/api/dist/
+apps/web/dist/
+apps/website/dist/
+packages/*/dist/
+apps/api/generated/
 
-# --- SQLite & Local Databases ---
-*.db
+# --- SQLite temporary files & local runtime caches ---
 *.db-journal
 *.db-wal
 *.sqlite
 *.sqlite3
+# Ignore other sqlite databases except the seeded demo database
+*.db
+!apps/api/prisma/dev.db
 
-# --- Excluded Non-Vercel Applications ---
-# Only apps/website is deployed on Vercel
-apps/api/
+# --- Excluded non-Vercel applications & media ---
+# Windows Electron packaging & installer
 apps/desktop/
-apps/web/
+# Standalone React Native / Expo mobile app
 mobile/
-
-# --- Excluded Shared Packages & Workspaces ---
-packages/
-
-# --- Excluded Scripts & Heavy Media (Remotion, recordings) ---
+# Video generation tools, Remotion renders, raw demo clips
 scripts/
-
-# --- Excluded Internal Documentation & CI ---
+# Internal dev guides, CI desktop release workflow, and raw design docs
 .claude/
 .github/
 docs/

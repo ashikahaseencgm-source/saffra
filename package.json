@@ -1,0 +1,34 @@
+{
+  "name": "saffra",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Saffra — Restaurant Operating System. Tables, kitchen and payments — in one flow.",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n api,web -c blue,green \"npm run dev:api\" \"npm run dev:web\"",
+    "dev:api": "npm run dev --workspace apps/api",
+    "dev:web": "npm run dev --workspace apps/web",
+    "build": "npm run db:generate --workspace apps/api && npm run build --workspace apps/api && npm run build --workspace apps/web",
+    "typecheck": "npm run typecheck --workspace apps/api && npm run typecheck --workspace apps/web",
+    "lint": "npm run lint --workspace apps/api && npm run lint --workspace apps/web",
+    "test": "npm run test --workspace apps/api",
+    "db:generate": "npm run db:generate --workspace apps/api",
+    "db:migrate": "npm run db:migrate --workspace apps/api",
+    "db:seed": "npm run db:seed --workspace apps/api",
+    "dist:win": "npm run build --workspace apps/api && npm run build --workspace apps/web && npm run prepare:resources --workspace apps/desktop && npm run dist:win --workspace apps/desktop",
+    "mobile": "npm --prefix mobile start",
+    "mobile:install": "npm --prefix mobile install",
+    "mobile:typecheck": "npm --prefix mobile run typecheck"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.5",
+    "typescript": "^5.6.3"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
