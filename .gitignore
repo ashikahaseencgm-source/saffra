@@ -58,8 +58,12 @@ mobile/
 # Video generation tools, Remotion renders, raw demo clips
 scripts/
 # Internal dev guides, CI desktop release workflow, and raw design docs
-.claude/
-.github/
-docs/
-assets/
-CLAUDE.md
+/.claude/
+/.github/
+/docs/
+/assets/
+/CLAUDE.md
+
+# Ensure apps/web assets are tracked
+!apps/web/src/assets/**
+
